@@ -4,11 +4,11 @@ Dear course team,
 
 Please check out a small **compiled** website I made back in November of 2025:
 
-(d-language.website)[https://d-language.website]
+[d-language.website](https://d-language.website)
 
 And, specifically, the Dockerfile for the server:
 
-(Dockerfile)[https://github.com/Error10556/dsite/blob/main/site/Dockerfile]
+[Dockerfile](https://github.com/Error10556/dsite/blob/main/site/Dockerfile)
 
 This is a showcase for an interpreted language we made for the Compiler Construction course. However,
 this interpreted language is called from C++ through an interpreter library that gets compiled from source in a
