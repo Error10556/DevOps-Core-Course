@@ -86,4 +86,36 @@ All the checkmarks:
 
 ![Screenshot of a successful GitHub Actions view](/app_python/docs/screenshots/Lab3-green-checkmark.png)
 
+# Task 3
 
+## Add badge
+
+See `app_python/README.md`.
+
+## Caching implementation
+
+We compare 2 jobs:
+
+- CI with caching:
+  [github.com/Error10556/DevOps-Core-Course/actions/runs/21910845044/job/63263997026](https://github.com/Error10556/DevOps-Core-Course/actions/runs/21910845044/job/63263997026)
+- CI without caching:
+  [github.com/Error10556/DevOps-Core-Course/actions/runs/21910713353/job/63263515554](https://github.com/Error10556/DevOps-Core-Course/actions/runs/21910713353/job/63263515554)
+
+Results are surprising: without caching, the job took 10 seconds, but with caching, it took 11 seconds.
+
+This is a negative improvement (-10%). Still an improvement, though. Just negative.
+
+In all seriousness, the 1s difference could just be a measurement error, and these jobs took roughly the same time
+because there are very few dependencies to install.
+
+## Snyk
+
+Snyk has difficulties with issuing tokens.
+
+## More best practices
+
+It was revealed to me in a dream that one of the most important security precautions to implement is not vibe-coding
+your way through university. However, this is just not feasible with tasks like these. The AI-generated labs are poorly
+reviewed for workload; as much as I wanted to learn the subject and take all that the course has to offer, I have to
+prioritize actual learning above tasks like "Oh, by the way, do like these three other tasks on your own, independently,
+because the course team can't be bothered to teach you. This is mandatory, by the way. OK? Thanks".
