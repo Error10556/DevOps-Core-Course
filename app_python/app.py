@@ -2,8 +2,8 @@
 DevOps Info Service
 Main application module
 """
-from datetime import datetime, timezone
 from flask import Flask, jsonify, request
+from datetime import datetime, timezone
 import logging
 import os
 import platform
@@ -48,7 +48,8 @@ def get_uptime() -> dict[str, int | str | None]:
         tzinfo = str(tzinfo)
     return {
         'uptime_seconds': seconds,
-        'uptime_human':   f"{hours} hour{word_plural(hours)}, {minutes} minute{word_plural(minutes)}",
+        'uptime_human':   f"{hours} hour{word_plural(hours)}, " +
+                          f"{minutes} minute{word_plural(minutes)}",
         'current_time':   loctime.isoformat(timespec='milliseconds'),
         'timezone':       tzinfo,
     }
@@ -78,7 +79,7 @@ def index():
         'runtime': get_uptime(),
         'request': get_request_info(),
         'endpoints': [
-            {"path": "/"      , "method": "GET", "description": "Service information"},
+            {"path": "/",       "method": "GET", "description": "Service information"},
             {"path": "/health", "method": "GET", "description": "Health check"}
         ]
     })
