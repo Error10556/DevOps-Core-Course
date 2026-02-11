@@ -17,7 +17,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-app = Flask(__name__)
+app: Flask = Flask(__name__)
 
 
 def get_system_info() -> dict[str, str | int | None]:
