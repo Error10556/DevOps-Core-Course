@@ -1,3 +1,5 @@
+[![CI for metrics app](https://github.com/Error10556/DevOps-Core-Course/actions/workflows/python-ci.yml/badge.svg?branch=lab03)](https://github.com/Error10556/DevOps-Core-Course/actions/workflows/python-ci.yml)
+
 # DevOps Info Service
 ## Overview
 

@@ -1,0 +1,45 @@
+name: CI for metrics app
+
+on: [push]
+
+jobs:
+  ci:
+    name: CI job
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.14
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r app_python/requirements.txt -r app_python/requirements-dev.txt
+      - name: Flake8 lint
+        run: flake8 --max-line-length 99 app_python/app.py
+      - name: Run tests
+        run: pytest app_python
+  docker:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKER_USERNAME }}/devops-infoservice
+          tags: |
+            type=semver,pattern={{version}}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app_python
+          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
