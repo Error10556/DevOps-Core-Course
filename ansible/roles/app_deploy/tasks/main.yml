@@ -1,0 +1,38 @@
+---
+- name: load vault
+  ansible.builtin.include_vars: '../group_vars/all.yml'
+
+- name: DockerHub Login
+  community.docker.docker_login:
+    username: '{{ dockerhub_username }}'
+    password: '{{ dockerhub_password }}'
+  no_log: true
+
+- name: Pull image
+  community.docker.docker_image_pull:
+    name: '{{ docker_image }}'
+    tag: '{{ docker_image_tag }}'
+
+- name: Stop and remove running container
+  community.docker.docker_container:
+    name: '{{ app_container_name }}'
+    state: absent
+
+- name: Run container
+  community.docker.docker_container:
+    name: '{{ app_container_name }}'
+    image: '{{ docker_image }}:{{ docker_image_tag }}'
+    published_ports:
+      - '{{ app_port }}:{{ default_port }}'
+    env: "{{ default_environment_variables }}"
+    restart_policy: '{{ default_restart_policy }}'
+    state: started
+
+- name: Wait for port
+  ansible.builtin.wait_for:
+    port: '{{ app_port }}'
+
+- name: Healthcheck
+  ansible.builtin.uri:
+    url: 'http://localhost:{{ app_port }}/health'
+    status_code: 200
