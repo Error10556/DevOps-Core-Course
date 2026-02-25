@@ -1,0 +1,27 @@
+---
+- name: Add Docker repo
+  ansible.builtin.deb822_repository:
+    check_date: true
+    check_valid_until: true
+    name: docker
+    uris: https://download.docker.com/linux/ubuntu
+    suites: '{{ ansible_facts["distribution_release"] }}'
+    components: stable
+    signed_by: https://download.docker.com/linux/ubuntu/gpg
+  notify: Update apt cache
+
+- name: Install Docker
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - python3-docker
+    state: present
+
+- name: Add ubuntu user to docker group
+  ansible.builtin.user:
+    name: '{{ ubuntu_user }}'
+    groups: docker
+    append: yes
+  notify: restart docker
