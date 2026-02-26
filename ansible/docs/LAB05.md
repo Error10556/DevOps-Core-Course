@@ -168,43 +168,94 @@ Ubuntu 24.04 LTS
 3. `app_deploy` for pulling and running the application.
 
 ### Why roles instead of monolithic playbooks?
-
+Roles act as reusable and invokable playbooks. Increases modularity.
 
 ## 2. Roles Documentation
 
-For each role (common, docker, app_deploy):
-### Purpose: What does this role do?
-### Variables: Key variables and defaults
-### Handlers: What handlers are defined?
-### Dependencies: Does it depend on other roles?
+### common
+- **Purpose**: Configure the system and set up common software.
+- **Variables**: `common_packages` contains a list of packages to install
+- **Handlers**: none
+- **Dependencies**: no other roles needed
+
+### docker
+- **Purpose**: Install the latest Docker version and configure the system
+- **Variables**: `ubuntu_user` is the user to add to the `docker` group, in my case `vboxuser`
+- **Handlers**: `restart docker` restarts the daemon
+- **Dependencies**: no other roles required
+
+### app\_deploy
+- **Purpose**: Pull and run the app
+- **Variables in the role**:
+    - `default_port: 5000` is the listened port inside the container
+    - `default_restart_policy: unless-stopped`
+    - `default_environment_variables: '{}'` is the env. variables passed to the app
+- **Variables in the vault** `group_vars/all.yml`:
+    - `dockerhub_username` is my username on DockerHub
+    - `dockerhub_password` is my PAT (by principle of least privilege, it grants read-only access only to public images)
+    - `app_name: devops-infoservice` is the container and image name (without my username)
+    - `docker_image: "{{ dockerhub_username }}/{{ app_name }}"` is the full image name on DockerHub
+    - `docker_image_tag: latest`, as required by the lab
+    - `app_port: 5000` is the port exposed on the VM
+    - `app_container_name: "{{ app_name }}"` is the container name
+- **Handlers**: `restart container` restarts the container
+- **Dependencies**: requires the `docker` role to run before it
 
 ## 3. Idempotency Demonstration
 ### Terminal output from FIRST provision.yml run
+See Task 2.
 ### Terminal output from SECOND provision.yml run
+See Task 2.
 ### Analysis: What changed first time? What didn't change second time?
+See Task 2.
 ### Explanation: What makes your roles idempotent?
+I took care to specify the desired state of the machine instead of imperatively running the commands.
+This way, Ansible can determine what it actually needs to run, and, of course, on the second run there will be nothing
+to do.
 
 ## 4. Ansible Vault Usage
 ### How you store credentials securely
+I store them in the `group_vars/all.yml` vault (encrypted with a password).
 ### Vault password management strategy
+The password is stored securely inside my head ;)
+So unless you apply a soldering iron directly to the head, you will not extract it.
 ### Example of encrypted file (show it's encrypted!)
+For example:
+```sh
+head -n 2 group_vars/all.yml
+```
+Yields:
+```text
+$ANSIBLE_VAULT;1.1;AES256
+35666430376135623761373732656538383137656466336266366239303435363364353462323136
+```
+So this file is an unreadable Ansible vault that uses AES256 symmetric encryption.
+
 ### Why Ansible Vault is important
+Since I have to push the variable file to GitHub, I have to encrypt it so that nobody can see the credentials.
 
 ## 5. Deployment Verification
-### Terminal output from deploy.yml run
-### Container status: `docker ps` output
-### Health check verification: `curl` outputs
-### Handler execution (if any)
+See Task 3.
 
 ## 6. Key Decisions
 ### Why use roles instead of plain playbooks?
+See **Why roles instead of monolithic playbooks?** in **Architecture overview**.
 ### How do roles improve reusability?
+When done correctly, a role acts like a module that does one specific task and does it well.
+This allows engineers to paste the same role into new projects.
+
 ### What makes a task idempotent?
+When the task specifies what the system should be like by the end of the task, it can be re-run multiple times, but
+runs after the first one will see that the system is already in the desired state and do nothing.
+
 ### How do handlers improve efficiency?
+Handlers only execute when a task has changed the system state, not always. That reduces overhead.
+
 ### Why is Ansible Vault necessary?
+See **Why Ansible Vault is important** in **Ansible Vault Usage**.
 
 ## 7. Challenges (Optional)
 ### Issues encountered and solutions
-### Keep it brief - bullet points OK
-
+- Running `apt update` only if the docker repo has been newly added. Tried handlers, but it turned out they only run
+  after all tasks have run (which really should have been clarified better in the lecture, IMHO).
 
