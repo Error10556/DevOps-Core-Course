@@ -1,13 +1,25 @@
----
-- name: Update apt cache
-  apt:
-    update_cache: yes
-    cache_valid_time: 3600
+- name: Install required apt packages
+  block:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
 
-- name: Install common packages
-  apt:
-    name: "{{ common_packages }}"
-    state: present
+    - name: Install common packages
+      apt:
+        name: "{{ common_packages }}"
+        state: present
+  rescue:
+    - name: Fix apt
+      apt:
+        state: fixed
+  always:
+    - name: Log completion
+      file:
+        path: /tmp/ansible-packages-complete
+        state: touch
+  tags:
+    - packages
 
 - name: Set timezone to UTC
   community.general.timezone:
