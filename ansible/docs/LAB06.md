@@ -161,3 +161,170 @@ playbook: playbooks/provision.yml
 
 # Task 2
 
+The "docker" dependency is needed to ensure that the `web_app` role (that requires Docker to function) runs **after**
+the `docker` role (which installs Docker).
+
+First run:
+
+```text
+PLAY [Deploy application] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [devops-vm]
+
+TASK [docker : Add Docker repo] ************************************************
+ok: [devops-vm]
+
+TASK [docker : update apt cache] ***********************************************
+skipping: [devops-vm]
+
+TASK [docker : Install Docker] *************************************************
+ok: [devops-vm]
+
+TASK [docker : Ensure Docker is running] ***************************************
+ok: [devops-vm]
+
+TASK [docker : Add ubuntu user to docker group] ********************************
+ok: [devops-vm]
+
+TASK [web_app : load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : DockerHub Login] ***********************************************
+ok: [devops-vm]
+
+TASK [web_app : Create app directory] ******************************************
+ok: [devops-vm]
+
+TASK [web_app : Template docker-compose file] **********************************
+changed: [devops-vm]
+
+TASK [web_app : Deploy with docker-compose] ************************************
+[WARNING]: Docker compose: unknown None: /opt/devops-infoservice/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion
+changed: [devops-vm]
+
+TASK [web_app : Wait for port] *************************************************
+ok: [devops-vm]
+
+TASK [web_app : Healthcheck] ***************************************************
+ok: [devops-vm]
+
+PLAY RECAP *********************************************************************
+devops-vm                  : ok=12   changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+```
+(2 changes)
+
+Second run:
+```text
+PLAY [Deploy application] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [devops-vm]
+
+TASK [docker : Add Docker repo] ************************************************
+ok: [devops-vm]
+
+TASK [docker : update apt cache] ***********************************************
+skipping: [devops-vm]
+
+TASK [docker : Install Docker] *************************************************
+ok: [devops-vm]
+
+TASK [docker : Ensure Docker is running] ***************************************
+ok: [devops-vm]
+
+TASK [docker : Add ubuntu user to docker group] ********************************
+ok: [devops-vm]
+
+TASK [web_app : load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : DockerHub Login] ***********************************************
+ok: [devops-vm]
+
+TASK [web_app : Create app directory] ******************************************
+ok: [devops-vm]
+
+TASK [web_app : Template docker-compose file] **********************************
+ok: [devops-vm]
+
+TASK [web_app : Deploy with docker-compose] ************************************
+[WARNING]: Docker compose: unknown None: /opt/devops-infoservice/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion
+ok: [devops-vm]
+
+TASK [web_app : Wait for port] *************************************************
+ok: [devops-vm]
+
+TASK [web_app : Healthcheck] ***************************************************
+ok: [devops-vm]
+
+PLAY RECAP *********************************************************************
+devops-vm                  : ok=12   changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+```
+(0 changes)
+
+Evidence:
+```sh
+[timur@timur-croc ~/proj/DevOps-Core-Course/ansible]$ ssh vboxuser@127.0.0.1 -p 10022
+```
+```text
+Welcome to Ubuntu 24.04.4 LTS (GNU/Linux 6.17.0-14-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+Expanded Security Maintenance for Applications is not enabled.
+
+13 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+Last login: Tue Mar  3 11:12:13 2026 from 10.0.2.2
+```
+```sh
+vboxuser@devops-vm:~$ docker ps
+```
+```text
+CONTAINER ID   IMAGE                                    COMMAND                  CREATED         STATUS         PORTS                    NAMES
+eaa998499d91   timurusmanov/devops-infoservice:latest   "gunicorn -b 0.0.0.0…"   4 minutes ago   Up 4 minutes   0.0.0.0:5000->5000/tcp   devops-infoservice
+```
+```sh
+vboxuser@devops-vm:~$ docker compose -f /opt/devops-infoservice/docker-compose.yml ps
+```
+```text
+WARN[0000] /opt/devops-infoservice/docker-compose.yml: the attribute `version` is obsolete , it will be ignored, please remove it to avoid potential confusion 
+NAME                 IMAGE                                    COMMAND                  SERVICE              CREATED         STATUS         PORTS
+devops-infoservice   timurusmanov/devops-infoservice:latest   "gunicorn -b 0.0.0.0…"   devops-infoservice   4 minutes ago   Up 4 minutes   0.0.0.0:5000->5000/tcp
+```
+```sh
+vboxuser@devops-vm:~$ curl http://localhost:5000
+```
+(output given as it appeared in the terminal)
+```text
+{"endpoints":[{"description":"Service information","method":"GET","path":"/"},{"descriptio
+n":"Health check","method":"GET","path":"/health"}],"request":{"client_ip":"172.18.0.1","m
+ethod":"GET","path":"/","user_agent":"curl/8.5.0"},"runtime":{"current_time":"2026-03-03T1
+1:14:36.366+00:00","timezone":"UTC","uptime_human":"0 hours, 5 minutes","uptime_seconds":3
+00},"service":{"description":"DevOps course info service","framework":"Flask","name":"devo
+ps-info-service","version":"1.0.0"},"system":{"architecture":"x86_64","cpu_count":2,"hostn
+ame":"eaa998499d91","platform":"Linux","platform_version":"#14~24.04.1-Ubuntu SMP PREEMPT_
+DYNAMIC Thu Jan 15 15:52:10 UTC 2","python_version":"3.13.12"}}
+vboxuser@devops-vm:~$ 
+```
+
+Contents of `docker-compose.yml`:
+```text
+version: '3.8'
+
+services:
+  devops-infoservice:
+    image: timurusmanov/devops-infoservice:latest
+    container_name: devops-infoservice
+    ports:
+      - 0.0.0.0:5000:5000
+    environment: {}
+    restart: unless-stopped
+```
