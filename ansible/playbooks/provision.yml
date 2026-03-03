@@ -3,5 +3,7 @@
   become: yes
 
   roles:
-    - common
+    - role: common
+      tags:
+        - common
     - docker
