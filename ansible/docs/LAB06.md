@@ -328,3 +328,294 @@ services:
     environment: {}
     restart: unless-stopped
 ```
+
+# Task 3
+
+## Scenario 1
+
+```sh
+ansible-playbook playbooks/deploy.yml
+```
+```text
+PLAY [Deploy application] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [devops-vm]
+
+TASK [docker : Add Docker repo] ************************************************
+ok: [devops-vm]
+
+TASK [docker : update apt cache] ***********************************************
+skipping: [devops-vm]
+
+TASK [docker : Install Docker] *************************************************
+ok: [devops-vm]
+
+TASK [docker : Ensure Docker is running] ***************************************
+ok: [devops-vm]
+
+TASK [docker : Add ubuntu user to docker group] ********************************
+ok: [devops-vm]
+
+TASK [web_app : Include wipe tasks] ********************************************
+included: /home/timur/proj/DevOps-Core-Course/ansible/roles/web_app/tasks/wipe.yml for devops-vm
+
+TASK [web_app : Stop and remove containers] ************************************
+skipping: [devops-vm]
+
+TASK [web_app : Remove docker-compose file and directory] **********************
+skipping: [devops-vm]
+
+TASK [web_app : Log wipe completion] *******************************************
+skipping: [devops-vm]
+
+TASK [web_app : load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : DockerHub Login] ***********************************************
+ok: [devops-vm]
+
+TASK [web_app : Create app directory] ******************************************
+ok: [devops-vm]
+
+TASK [web_app : Template docker-compose file] **********************************
+ok: [devops-vm]
+
+TASK [web_app : Deploy with docker-compose] ************************************
+[WARNING]: Docker compose: unknown None: /opt/devops-infoservice/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion
+ok: [devops-vm]
+
+TASK [web_app : Wait for port] *************************************************
+ok: [devops-vm]
+
+TASK [web_app : Healthcheck] ***************************************************
+ok: [devops-vm]
+
+PLAY RECAP *********************************************************************
+devops-vm                  : ok=13   changed=0    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0   
+```
+All wiping tasks skipped, as expected.
+
+```sh
+ssh vboxuser@127.0.0.1 -p 10022 docker ps
+```
+```text
+CONTAINER ID   IMAGE                                    COMMAND                  CREATED       STATUS       PORTS                    NAMES
+eaa998499d91   timurusmanov/devops-infoservice:latest   "gunicorn -b 0.0.0.0…"   4 hours ago   Up 4 hours   0.0.0.0:5000->5000/tcp   devops-infoservice
+```
+
+## Scenario 2
+
+```sh
+ansible-playbook playbooks/deploy.yml \
+  -e "web_app_wipe=true" \
+  --tags web_app_wipe
+```
+```text
+PLAY [Deploy application] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [devops-vm]
+
+TASK [web_app : Load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : Include wipe tasks] ********************************************
+included: /home/timur/proj/DevOps-Core-Course/ansible/roles/web_app/tasks/wipe.yml for devops-vm
+
+TASK [web_app : Stop and remove containers] ************************************
+[WARNING]: Docker compose: unknown None: /opt/devops-infoservice/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion
+changed: [devops-vm]
+
+TASK [web_app : Remove docker-compose file and directory] **********************
+changed: [devops-vm]
+
+TASK [web_app : Log wipe completion] *******************************************
+ok: [devops-vm] => {
+    "msg": "Application devops-infoservice wiped successfully"
+}
+
+PLAY RECAP *********************************************************************
+devops-vm                  : ok=6    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+```sh
+ssh vboxuser@127.0.0.1 -p 10022 docker ps
+```
+```text
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+```sh
+ssh vboxuser@127.0.0.1 -p 10022 ls /opt
+```
+```text
+containerd
+VBoxGuestAdditions-7.2.6
+```
+
+## Scenario 3
+
+```sh
+ansible-playbook playbooks/deploy.yml -e "web_app_wipe=true"
+```
+```text
+/usr/lib/python3.14/getpass.py:99: GetPassWarning: Can not control echo on the terminal.
+  passwd = fallback_getpass(prompt, stream)
+Warning: Password input may be echoed.
+Vault password: 
+
+PLAY [Deploy application] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [devops-vm]
+
+TASK [docker : Add Docker repo] ************************************************
+ok: [devops-vm]
+
+TASK [docker : update apt cache] ***********************************************
+skipping: [devops-vm]
+
+TASK [docker : Install Docker] *************************************************
+ok: [devops-vm]
+
+TASK [docker : Ensure Docker is running] ***************************************
+ok: [devops-vm]
+
+TASK [docker : Add ubuntu user to docker group] ********************************
+ok: [devops-vm]
+
+TASK [web_app : Load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : Include wipe tasks] ********************************************
+included: /home/timur/proj/DevOps-Core-Course/ansible/roles/web_app/tasks/wipe.yml for devops-vm
+
+TASK [web_app : load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : Stop and remove containers] ************************************
+[ERROR]: Task failed: Module failed: "/opt/devops-infoservice" is not a directory
+Origin: /home/timur/proj/DevOps-Core-Course/ansible/roles/web_app/tasks/wipe.yml:6:7
+
+4 - name: Wipe web application
+5   block:
+6     - name: Stop and remove containers
+        ^ column 7
+
+fatal: [devops-vm]: FAILED! => {"changed": false, "msg": "\"/opt/devops-infoservice\" is not a directory"}
+...ignoring
+
+TASK [web_app : Remove docker-compose file and directory] **********************
+ok: [devops-vm]
+
+TASK [web_app : Log wipe completion] *******************************************
+ok: [devops-vm] => {
+    "msg": "Application devops-infoservice wiped successfully"
+}
+
+TASK [web_app : DockerHub Login] ***********************************************
+ok: [devops-vm]
+
+TASK [web_app : Create app directory] ******************************************
+changed: [devops-vm]
+
+TASK [web_app : Template docker-compose file] **********************************
+changed: [devops-vm]
+
+TASK [web_app : Deploy with docker-compose] ************************************
+[WARNING]: Docker compose: unknown None: /opt/devops-infoservice/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion
+changed: [devops-vm]
+
+TASK [web_app : Wait for port] *************************************************
+ok: [devops-vm]
+
+TASK [web_app : Healthcheck] ***************************************************
+ok: [devops-vm]
+
+PLAY RECAP *********************************************************************
+devops-vm                  : ok=17   changed=3    unreachable=0    failed=0    skipped=1    rescued=0    ignored=1   
+```
+Here, the task of removing the containers failed because the project has been wiped previously, but this is fine, so the
+error is ignored.
+
+```sh
+ssh vboxuser@127.0.0.1 -p 10022 "docker ps"
+```
+```text
+CONTAINER ID   IMAGE                                    COMMAND                  CREATED         STATUS         PORTS                    NAMES
+53b905e53d5c   timurusmanov/devops-infoservice:latest   "gunicorn -b 0.0.0.0…"   2 minutes ago   Up 2 minutes   0.0.0.0:5000->5000/tcp   devops-infoservice
+```
+
+# Scenario 4
+
+```sh
+# 4a: Tag specified but variable false (when condition blocks it)
+ansible-playbook playbooks/deploy.yml --tags web_app_wipe
+# Result: wipe tasks skipped, deployment runs normally
+```
+```text
+PLAY [Deploy application] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [devops-vm]
+
+TASK [web_app : Load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : Include wipe tasks] ********************************************
+included: /home/timur/proj/DevOps-Core-Course/ansible/roles/web_app/tasks/wipe.yml for devops-vm
+
+TASK [web_app : Stop and remove containers] ************************************
+skipping: [devops-vm]
+
+TASK [web_app : Remove docker-compose file and directory] **********************
+skipping: [devops-vm]
+
+TASK [web_app : Log wipe completion] *******************************************
+skipping: [devops-vm]
+
+PLAY RECAP *********************************************************************
+devops-vm                  : ok=3    changed=0    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+```
+Indeed, wiping was skipped.
+
+```sh
+# 4b: Variable true, deployment skipped (only wipe runs)
+ansible-playbook playbooks/deploy.yml -e "web_app_wipe=true" --tags web_app_wipe
+# Result: only wipe, no deployment
+```
+```text
+PLAY [Deploy application] ******************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [devops-vm]
+
+TASK [web_app : Load vault] ****************************************************
+ok: [devops-vm]
+
+TASK [web_app : Include wipe tasks] ********************************************
+included: /home/timur/proj/DevOps-Core-Course/ansible/roles/web_app/tasks/wipe.yml for devops-vm
+
+TASK [web_app : Stop and remove containers] ************************************
+[WARNING]: Docker compose: unknown None: /opt/devops-infoservice/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion
+changed: [devops-vm]
+
+TASK [web_app : Remove docker-compose file and directory] **********************
+changed: [devops-vm]
+
+TASK [web_app : Log wipe completion] *******************************************
+ok: [devops-vm] => {
+    "msg": "Application devops-infoservice wiped successfully"
+}
+
+PLAY RECAP *********************************************************************
+devops-vm                  : ok=6    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+App wiped.
+
+## Screenshot after clean install
+
+![Browser in vm](/ansible/docs/LAB06_Screenshot_app_in_vm.png)
+
+# Task 4
+

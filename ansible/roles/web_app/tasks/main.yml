@@ -1,12 +1,22 @@
 ---
-- name: load vault
-  ansible.builtin.include_vars: '../group_vars/all.yml'
+- name: Load vault
+  ansible.builtin.include_vars: '../../group_vars/all.yml'
+  tags:
+    - web_app_wipe
+
+- name: Include wipe tasks
+  include_tasks: wipe.yml
+  tags:
+    - web_app_wipe
 
 - name: DockerHub Login
   community.docker.docker_login:
     username: '{{ dockerhub_username }}'
     password: '{{ dockerhub_password }}'
   no_log: true
+  tags:
+    - app_deploy
+    - compose
 
 - name: Deploy application with Docker Compose
   block:
@@ -43,8 +53,14 @@
 - name: Wait for port
   ansible.builtin.wait_for:
     port: '{{ app_port }}'
+  tags:
+    - app_deploy
+    - compose
 
 - name: Healthcheck
   ansible.builtin.uri:
     url: 'http://localhost:{{ app_port }}/health'
     status_code: 200
+  tags:
+    - app_deploy
+    - compose

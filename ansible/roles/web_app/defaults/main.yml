@@ -4,3 +4,4 @@ default_restart_policy: unless-stopped
 default_environment_variables: '{}'
 compose_project_dir: "/opt/{{ app_name }}"
 docker_compose_version: "'3.8'"
+web_app_wipe: false
