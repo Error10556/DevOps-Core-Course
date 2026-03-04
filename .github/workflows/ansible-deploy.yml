@@ -56,8 +56,11 @@ jobs:
       - name: Run playbook
         run: |
           cd ansible
-          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" | \
-              ansible-playbook playbooks/deploy.yml -i inventory/hosts-runner.ini --ask-vault-pass
+          touch /tmp/vaultpass.txt
+          chmod 600 /tmp/vaultpass.txt
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > /tmp/vaultpass.txt
+          ansible-playbook playbooks/deploy.yml -i inventory/hosts-runner.ini --vault-password-file /tmp/vaultpass.txt
+          rm /tmp/vaultpass.txt
 
       - name: Verify deployment
         run: |
