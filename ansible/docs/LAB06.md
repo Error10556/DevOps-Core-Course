@@ -619,3 +619,60 @@ App wiped.
 
 # Task 4
 
+## Evidence
+
+### Screenshot of successful workflow run
+![successful_workflow_run](/ansible/docs/LAB06_Screenshot_successful_workflow_run.png)
+### Output logs showing ansible-lint passing
+![ansible-lint_passing](/ansible/docs/LAB06_Screenshot_ansible-lint_passing.png)
+### Output logs showing ansible-playbook execution
+![ansible-playbook_exec](/ansible/docs/LAB06_Screenshot_ansible-playbook_exec.png)
+### Verification step output showing app responding
+![deployment_verification](/ansible/docs/LAB06_Screenshot_deployment_verification.png)
+### Status badge in README showing passing
+![passing_badge](/ansible/docs/LAB06_Screenshot_passing_badge.png)
+
+## Research
+
+### What are the security implications of storing SSH keys in GitHub Secrets?
+
+If I store the private key in GitHub Secrets and my profile gets compromised, the bad actors may log into the machines
+that accept my private key. Also, GitHub administration may have access to all the secrets.
+
+That is why I do not store the keys there, and instead use a local VM.
+
+### How would you implement a staging → production deployment pipeline?
+
+With CI/CD on Github Actions:
+
+1. Deploy to a staging server with ansible in the `dev` branch (or a special `staging` branch)
+2. If all is well, merge to `prod` branch, which would deploy to production.
+
+### What would you add to make rollbacks possible?
+
+I would use concrete versions instead of `latest` in `group_vars/all.yml`, and then we would simply need to push a
+revert commit.
+
+### How does self-hosted runner improve security compared to GitHub-hosted?
+
+By principle of least privilege: we do not need to give away our keys and infrastructure information to third parties.
+Self-hosted runners do not share any information, so the private information is less likely to be compromised with them.
+
+# Task 5
+
+### Overview
+
+I deployed a toy application to a toy server by using production-grade professional tooling.
+
+Technologies:
+- ansible, ansible-lint
+- Docker (+compose)
+- Oracle VirtualBox
+- GitHub Actions
+
+### Every other required section & evidence
+
+I assume that all documentation should have been written at the stage when I reach task 5. However, I have been
+fulfilling the documentation requirements throughout the lab, and the sections in this task only seem to refer to the
+previously stated documentation requirements. Therefore, please, kindly refer to the previous 600 lines of this
+document.
