@@ -1,0 +1,65 @@
+name: Ansible Deployment
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'ansible/**'           # Ansible code
+      - '!ansible/docs/**'     # Exclude docs
+      - '.github/workflows/ansible-deploy.yml'  # Workflow changes
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'ansible/**'           # Ansible code
+      - '!ansible/docs/**'     # Exclude docs
+      - '.github/workflows/ansible-deploy.yml'  # Workflow changes
+jobs:
+  lint:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          pip install ansible ansible-lint
+
+      - name: Run ansible-lint
+        run: |
+          cd ansible
+          ansible-lint playbooks/*.yml
+
+  deploy:
+    name: Deploy Application
+    needs: lint
+    runs-on: self-hosted
+    steps:
+      # - name: Checkout code
+      #   uses: actions/checkout@v4
+      #
+      # - name: Set up Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: '3.14'
+      #
+      # - name: Install dependencies
+      #   run: |
+      #     pip install ansible
+
+      - name: Run playbook
+        run: |
+          cd ansible
+          ansible-playbook playbooks/deploy.yml -i inventory/hosts-runner.ini \
+            --ask-vault-pass <<<${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+
+      - name: Verify deployment
+        run: |
+          sleep 10  # Wait for app to start
+          curl -f http://${{ secrets.VM_HOST }}:8000 || exit 1
+          curl -f http://${{ secrets.VM_HOST }}:8000/health || exit 1
