@@ -1,25 +1,26 @@
 - name: Install required apt packages
+  tags:
+    - packages
   block:
     - name: Update apt cache
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
         cache_valid_time: 3600
 
     - name: Install common packages
-      apt:
+      ansible.builtin.apt:
         name: "{{ common_packages }}"
         state: present
   rescue:
     - name: Fix apt
-      apt:
+      ansible.builtin.apt:
         state: fixed
   always:
     - name: Log completion
-      file:
+      ansible.builtin.file:
         path: /tmp/ansible-packages-complete
         state: touch
-  tags:
-    - packages
+        mode: '644'
 
 - name: Set timezone to UTC
   community.general.timezone:

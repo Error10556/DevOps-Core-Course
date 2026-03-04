@@ -1,10 +1,10 @@
-version: {{ docker_compose_version }}
+version: {{ web_app_docker_compose_version }}
 
 services:
   {{ app_name }}:
     image: {{ docker_image }}:{{ docker_image_tag }}
     container_name: {{ app_name }}
     ports:
-      - {{ app_host }}:{{ app_port }}:{{ default_port }}
-    environment: {{ default_environment_variables }}
-    restart: {{ default_restart_policy }}
+      - {{ app_host }}:{{ app_port }}:{{ web_app_default_port }}
+    environment: {{ web_app_default_environment_variables }}
+    restart: {{ web_app_default_restart_policy }}
