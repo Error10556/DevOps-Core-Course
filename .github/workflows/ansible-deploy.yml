@@ -5,11 +5,13 @@ on:
     paths:
       - 'ansible/**'           # Ansible code
       - '!ansible/docs/**'     # Exclude docs
+      - '!ansible/README.md'
       - '.github/workflows/ansible-deploy.yml'  # Workflow changes
   pull_request:
     paths:
       - 'ansible/**'           # Ansible code
       - '!ansible/docs/**'     # Exclude docs
+      - '!ansible/README.md'
       - '.github/workflows/ansible-deploy.yml'  # Workflow changes
 
 jobs:
