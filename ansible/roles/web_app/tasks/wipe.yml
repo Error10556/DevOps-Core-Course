@@ -1,0 +1,22 @@
+- name: Load vault
+  ansible.builtin.include_vars: '../group_vars/all.yml'
+
+- name: Wipe web application
+  when: web_app_wipe | bool
+  tags:
+    - web_app_wipe
+  block:
+    - name: Stop and remove containers
+      community.docker.docker_compose_v2:
+        project_src: '{{ web_app_compose_project_dir }}'
+        state: absent
+      failed_when: false
+
+    - name: Remove docker-compose file and directory
+      ansible.builtin.file:
+        path: '{{ web_app_compose_project_dir }}'
+        state: absent
+
+    - name: Log wipe completion
+      ansible.builtin.debug:
+        msg: "Application {{ app_name }} wiped successfully"

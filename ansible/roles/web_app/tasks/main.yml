@@ -1,0 +1,68 @@
+---
+- name: Load vault
+  ansible.builtin.include_vars: '../../group_vars/all.yml'
+  tags:
+    - web_app_wipe
+
+- name: Include wipe tasks
+  ansible.builtin.include_tasks: wipe.yml
+  tags:
+    - web_app_wipe
+
+- name: DockerHub Login
+  community.docker.docker_login:
+    username: '{{ dockerhub_username }}'
+    password: '{{ dockerhub_password }}'
+  no_log: true
+  tags:
+    - app_deploy
+    - compose
+
+- name: Deploy application with Docker Compose
+  tags:
+    - app_deploy
+    - compose
+
+  block:
+    - name: Create app directory
+      ansible.builtin.file:
+        path: '{{ web_app_compose_project_dir }}'
+        state: directory
+        mode: '755'
+
+    - name: Template docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: '{{ web_app_compose_project_dir }}/docker-compose.yml'
+        mode: '644'
+
+    - name: Deploy with docker-compose
+      community.docker.docker_compose_v2:
+        pull: always
+        project_src: '{{ web_app_compose_project_dir }}'
+        state: present
+
+  rescue:
+    - name: Log failure
+      ansible.builtin.debug:
+        msg: "Docker Compose FAILED! Shutting down"
+
+    # - name: Handle deployment failure
+    #   community.docker.docker_compose_v2:
+    #     project_src: '{{ compose_project_dir }}'
+    #     state: absent
+
+- name: Wait for port
+  ansible.builtin.wait_for:
+    port: '{{ app_port }}'
+  tags:
+    - app_deploy
+    - compose
+
+- name: Healthcheck
+  ansible.builtin.uri:
+    url: 'http://localhost:{{ app_port }}/health'
+    status_code: 200
+  tags:
+    - app_deploy
+    - compose

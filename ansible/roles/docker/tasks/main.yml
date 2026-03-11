@@ -1,35 +1,53 @@
----
-- name: Add Docker repo
-  ansible.builtin.deb822_repository:
-    check_date: true
-    check_valid_until: true
-    name: docker
-    uris: https://download.docker.com/linux/ubuntu
-    suites: '{{ ansible_facts["distribution_release"] }}'
-    components: stable
-    signed_by: https://download.docker.com/linux/ubuntu/gpg
-  register: repo_added
-
-- name: update apt cache
-  when: repo_added is changed
-  ansible.builtin.apt:
-    update_cache: true
-
 - name: Install Docker
-  ansible.builtin.apt:
-    name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-      - python3-docker
-    state: present
-  notify:
-    - restart docker
+  tags:
+    - docker_install
+    - docker
+  block:
+    - name: Add Docker repo
+      ansible.builtin.deb822_repository:
+        check_date: true
+        check_valid_until: true
+        name: docker
+        uris: https://download.docker.com/linux/ubuntu
+        suites: '{{ ansible_facts["distribution_release"] }}'
+        components: stable
+        signed_by: https://download.docker.com/linux/ubuntu/gpg
+      register: docker_repo_added
+      retries: 4
+      delay: 10
+      until: docker_repo_added is not failed
 
-- name: Add ubuntu user to docker group
-  ansible.builtin.user:
-    name: '{{ ubuntu_user }}'
-    groups: docker
-    append: true
-  notify:
-    - restart docker
+    - name: Update apt cache
+      when: docker_repo_added is changed
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - python3-docker
+        state: present
+  rescue:
+    - name: Retry updating apt cache
+      ansible.builtin.apt:
+        update_cache: true
+  always:
+    - name: Ensure Docker is running
+      ansible.builtin.service:
+        name: docker.service
+        enabled: true
+        state: started
+
+- name: Configure Docker user
+  tags:
+    - docker_config
+    - docker
+  block:
+    - name: Add ubuntu user to docker group
+      ansible.builtin.user:
+        name: '{{ docker_ubuntu_user }}'
+        groups: docker
+        append: true

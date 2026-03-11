@@ -1,4 +1,0 @@
----
-default_port: 5000
-default_restart_policy: unless-stopped
-default_environment_variables: '{}'
