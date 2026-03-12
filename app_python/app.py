@@ -11,19 +11,25 @@ import os
 import platform
 import socket
 
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, NotFound
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 
 class JSONFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__()
+
     def format(self, record: logging.LogRecord) -> str:
-        return json.dumps({
-            "timestamp": record.asctime,
+        rec = {
+            "timestamp": datetime.now().isoformat(),
             "level": record.levelname,
-            "message": record.getMessage()
-        })
+            "message": record.getMessage(),
+        }
+        if "http" in record.__dict__:
+            rec["http"] = record.http
+        return json.dumps(rec)
 
 
 logger = logging.Logger(__name__, logging.INFO if not DEBUG else logging.DEBUG)
@@ -77,10 +83,20 @@ def get_request_info() -> dict[str, str | None]:
     }
 
 
+def get_http_extra_info():
+    return {
+        "http": {
+            "location": request.path,
+            "method": request.method,
+            "ip": request.remote_addr,
+        }
+    }
+
+
 @app.route('/')
 def index():
-    logger.debug(f'Request: {request.method} {request.path}')
     """Main endpoint - service and system information."""
+    logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
     return jsonify({
         'service': {
             'name':        'devops-info-service',
@@ -100,7 +116,7 @@ def index():
 
 @app.route('/health')
 def health():
-    logger.debug(f'Request: {request.method} {request.path}')
+    logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
     return jsonify({
         'status':         'healthy',
         'timestamp':      datetime.now(timezone.utc).isoformat(),
@@ -108,24 +124,22 @@ def health():
     })
 
 
-@app.errorhandler(HTTPException)
-def httphandler(error: HTTPException):
-    if error.code == 404:
-        logger.info('A 404 Not Found error occured: client requested %s', error.get_response().location)
-        return jsonify({
-            'error':   'Not Found',
-            'message': 'Endpoint does not exist'
-        }), 404
-    if error.code == 500:
-        logger.error('Internal Server Error 500: client requested')
-        return jsonify({
-            'error':   'Internal Server Error',
-            'message': 'An unexpected error occurred'
-        }), 500
+@app.errorhandler(404)
+def notfound_handler(e):
+    logger.info('A 404 Not Found error occured', extra=get_http_extra_info())
+    return jsonify({
+        'error':   'Not Found',
+        'message': 'Endpoint does not exist'
+    }), 404
 
 
 @app.errorhandler(500)
-def internal_error(error):
+def internal_error(e):
+    logger.error('Internal Server Error 500', extra=get_http_extra_info())
+    return jsonify({
+        'error':   'Internal Server Error',
+        'message': 'An unexpected error occurred'
+    }), 500
 
 
 START_TIME = datetime.now(timezone.utc)

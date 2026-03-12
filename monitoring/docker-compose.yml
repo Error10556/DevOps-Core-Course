@@ -27,6 +27,16 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
 
+  devops-infoservice:
+    build: ${PWD}/../app_python
+    ports:
+      - 5000:5000
+    environment:
+      - DEBUG=true
+    labels:
+      logging: "promtail"
+      app: "devops-infoservice"
+
 volumes:
   loki-data:
   grafana-data:

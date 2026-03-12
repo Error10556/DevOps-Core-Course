@@ -16,4 +16,16 @@
 
 # Task 2
 
+#### terminal output
 
+![terminalout](/monitoring/docs/L7t2_terminalout.png)
+
+#### grafana
+
+![grafana](/monitoring/docs/L7t2_grafana.png)
+
+# Task 3
+
+#### panels
+
+![panels](/monitoring/docs/L7t3_panels.png)
