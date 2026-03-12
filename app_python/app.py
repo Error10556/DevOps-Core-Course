@@ -2,21 +2,34 @@
 DevOps Info Service
 Main application module
 """
+import datetime
+import json
 from flask import Flask, jsonify, request
 from datetime import datetime, timezone
 import logging
 import os
 import platform
 import socket
+
+from werkzeug.exceptions import HTTPException
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-logging.basicConfig(
-    level=logging.INFO if not DEBUG else logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+
+class JSONFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        return json.dumps({
+            "timestamp": record.asctime,
+            "level": record.levelname,
+            "message": record.getMessage()
+        })
+
+
+logger = logging.Logger(__name__, logging.INFO if not DEBUG else logging.DEBUG)
+stderrhandler = logging.StreamHandler()
+logger.addHandler(stderrhandler)
+stderrhandler.setFormatter(JSONFormatter())
 app: Flask = Flask(__name__)
 
 
@@ -95,23 +108,27 @@ def health():
     })
 
 
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({
-        'error':   'Not Found',
-        'message': 'Endpoint does not exist'
-    }), 404
+@app.errorhandler(HTTPException)
+def httphandler(error: HTTPException):
+    if error.code == 404:
+        logger.info('A 404 Not Found error occured: client requested %s', error.get_response().location)
+        return jsonify({
+            'error':   'Not Found',
+            'message': 'Endpoint does not exist'
+        }), 404
+    if error.code == 500:
+        logger.error('Internal Server Error 500: client requested')
+        return jsonify({
+            'error':   'Internal Server Error',
+            'message': 'An unexpected error occurred'
+        }), 500
 
 
 @app.errorhandler(500)
 def internal_error(error):
-    return jsonify({
-        'error':   'Internal Server Error',
-        'message': 'An unexpected error occurred'
-    }), 500
 
 
 START_TIME = datetime.now(timezone.utc)
-logger.info('Application starting...')
+logger.info('Application starting... Configured with log level=%s', 'DEBUG' if DEBUG else 'INFO')
 if __name__ == '__main__':
     app.run(host=HOST, port=PORT, debug=DEBUG)
