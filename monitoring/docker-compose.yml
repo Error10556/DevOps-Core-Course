@@ -7,6 +7,20 @@ services:
       - ${PWD}/loki/config.yml:/etc/loki/config.yml:ro
       - loki-data:/loki
     command: -config.file=/etc/loki/config.yml
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s  # Grace period for startup
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 3G
+        reservations:
+          cpus: '1'
+          memory: 1G
 
   promtail:
     image: grafana/promtail:3.0.0
@@ -15,17 +29,40 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yml
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 500M
 
   grafana:
     image: grafana/grafana:12.3.1
     ports:
       - 3000:3000
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASS}
+      - GF_SECURITY_ADMIN_EMAIL=${ADMIN_LOGIN}
     volumes:
       - grafana-data:/var/lib/grafana
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 500M
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s  # Grace period for startup
 
   devops-infoservice:
     build: ${PWD}/../app_python
@@ -36,6 +73,14 @@ services:
     labels:
       logging: "promtail"
       app: "devops-infoservice"
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 4G
+        reservations:
+          cpus: '3'
+          memory: 1G
 
 volumes:
   loki-data:
