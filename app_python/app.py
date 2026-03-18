@@ -2,21 +2,38 @@
 DevOps Info Service
 Main application module
 """
+import json
 from flask import Flask, jsonify, request
 from datetime import datetime, timezone
 import logging
 import os
 import platform
 import socket
+
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-logging.basicConfig(
-    level=logging.INFO if not DEBUG else logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+
+class JSONFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__()
+
+    def format(self, record: logging.LogRecord) -> str:
+        rec = {
+            "timestamp": datetime.now().isoformat(),
+            "level": record.levelname,
+            "message": record.getMessage(),
+        }
+        if "http" in record.__dict__:
+            rec["http"] = record.http
+        return json.dumps(rec)
+
+
+logger = logging.Logger(__name__, logging.INFO if not DEBUG else logging.DEBUG)
+stderrhandler = logging.StreamHandler()
+logger.addHandler(stderrhandler)
+stderrhandler.setFormatter(JSONFormatter())
 app: Flask = Flask(__name__)
 
 
@@ -64,10 +81,20 @@ def get_request_info() -> dict[str, str | None]:
     }
 
 
+def get_http_extra_info():
+    return {
+        "http": {
+            "location": request.path,
+            "method": request.method,
+            "ip": request.remote_addr,
+        }
+    }
+
+
 @app.route('/')
 def index():
-    logger.debug(f'Request: {request.method} {request.path}')
     """Main endpoint - service and system information."""
+    logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
     return jsonify({
         'service': {
             'name':        'devops-info-service',
@@ -87,7 +114,7 @@ def index():
 
 @app.route('/health')
 def health():
-    logger.debug(f'Request: {request.method} {request.path}')
+    logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
     return jsonify({
         'status':         'healthy',
         'timestamp':      datetime.now(timezone.utc).isoformat(),
@@ -96,7 +123,8 @@ def health():
 
 
 @app.errorhandler(404)
-def not_found(error):
+def notfound_handler(e):
+    logger.info('A 404 Not Found error occured', extra=get_http_extra_info())
     return jsonify({
         'error':   'Not Found',
         'message': 'Endpoint does not exist'
@@ -104,7 +132,8 @@ def not_found(error):
 
 
 @app.errorhandler(500)
-def internal_error(error):
+def internal_error(e):
+    logger.error('Internal Server Error 500', extra=get_http_extra_info())
     return jsonify({
         'error':   'Internal Server Error',
         'message': 'An unexpected error occurred'
@@ -112,6 +141,6 @@ def internal_error(error):
 
 
 START_TIME = datetime.now(timezone.utc)
-logger.info('Application starting...')
+logger.info('Application starting... Configured with log level=%s', 'DEBUG' if DEBUG else 'INFO')
 if __name__ == '__main__':
     app.run(host=HOST, port=PORT, debug=DEBUG)
