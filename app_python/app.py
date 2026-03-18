@@ -2,7 +2,6 @@
 DevOps Info Service
 Main application module
 """
-import datetime
 import json
 from flask import Flask, jsonify, request
 from datetime import datetime, timezone
@@ -11,7 +10,6 @@ import os
 import platform
 import socket
 
-from werkzeug.exceptions import HTTPException, NotFound
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
