@@ -165,7 +165,7 @@ def health():
 @prometheus.http_request_duration_seconds.labels('GET', '/metrics').time()
 @prometheus.http_requests_in_progress.track_inprogress()
 def metrics():
-    return generate_latest()
+    return Response(response=generate_latest(), status=200, content_type='text/plain')
 
 
 @app.errorhandler(404)
