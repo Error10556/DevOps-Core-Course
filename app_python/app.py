@@ -3,16 +3,45 @@ DevOps Info Service
 Main application module
 """
 import json
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 from datetime import datetime, timezone
 import logging
 import os
 import platform
 import socket
+from prometheus_client import Counter, Histogram, Gauge, generate_latest
+from asyncio import Lock
+
+import prometheus_client
 
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+
+
+class PrometheusStats:
+    http_requests_total: Counter
+    http_request_duration_seconds: Histogram
+    http_requests_in_progress: Gauge
+
+    def __init__(self):
+        self.http_requests_total = Counter(
+            'http_requests_total',
+            'Total HTTP requests',
+            ['method', 'endpoint', 'status']
+        )
+        self.http_request_duration_seconds = Histogram(
+            'http_request_duration_seconds',
+            'HTTP request duration',
+            ['method', 'endpoint']
+        )
+        self.http_requests_in_progress = Gauge(
+            'http_requests_in_progress',
+            'HTTP requests currently being processed'
+        )
+
+
+prometheus = PrometheusStats()
 
 
 class JSONFormatter(logging.Formatter):
@@ -92,6 +121,8 @@ def get_http_extra_info():
 
 
 @app.route('/')
+@prometheus.http_request_duration_seconds.labels('GET', '/').time()
+@prometheus.http_requests_in_progress.track_inprogress()
 def index():
     """Main endpoint - service and system information."""
     logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
@@ -113,6 +144,8 @@ def index():
 
 
 @app.route('/health')
+@prometheus.http_request_duration_seconds.labels('GET', '/health').time()
+@prometheus.http_requests_in_progress.track_inprogress()
 def health():
     logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
     return jsonify({
@@ -122,7 +155,15 @@ def health():
     })
 
 
+@app.route('/metrics')
+@prometheus.http_request_duration_seconds.labels('GET', '/metrics').time()
+@prometheus.http_requests_in_progress.track_inprogress()
+def metrics():
+    return generate_latest()
+
+
 @app.errorhandler(404)
+@prometheus.http_request_duration_seconds.time()
 def notfound_handler(e):
     logger.info('A 404 Not Found error occured', extra=get_http_extra_info())
     return jsonify({
@@ -138,6 +179,12 @@ def internal_error(e):
         'error':   'Internal Server Error',
         'message': 'An unexpected error occurred'
     }), 500
+
+
+@app.after_request
+def after_request(response: Response):
+    prometheus.http_requests_total.labels(request.method, request.path, str(response.status_code)).inc()
+    return response
 
 
 START_TIME = datetime.now(timezone.utc)
