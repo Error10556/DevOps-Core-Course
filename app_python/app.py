@@ -12,7 +12,6 @@ import socket
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from asyncio import Lock
 
-import prometheus_client
 
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
@@ -23,6 +22,7 @@ class PrometheusStats:
     http_requests_total: Counter
     http_request_duration_seconds: Histogram
     http_requests_in_progress: Gauge
+    system_info_duration_seconds: Histogram
 
     def __init__(self):
         self.http_requests_total = Counter(
@@ -38,6 +38,10 @@ class PrometheusStats:
         self.http_requests_in_progress = Gauge(
             'http_requests_in_progress',
             'HTTP requests currently being processed'
+        )
+        self.system_info_duration_seconds = Histogram(
+            'system_info_duration_seconds',
+            'System stats collection time'
         )
 
 
@@ -126,21 +130,23 @@ def get_http_extra_info():
 def index():
     """Main endpoint - service and system information."""
     logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
-    return jsonify({
-        'service': {
-            'name':        'devops-info-service',
-            'version':     '1.0.0',
-            'description': 'DevOps course info service',
-            'framework':   'Flask'
-        },
-        'system':  get_system_info(),
-        'runtime': get_uptime(),
-        'request': get_request_info(),
-        'endpoints': [
-            {"path": "/",       "method": "GET", "description": "Service information"},
-            {"path": "/health", "method": "GET", "description": "Health check"}
-        ]
-    })
+    with prometheus.system_info_duration_seconds.time():
+        response = {
+            'service': {
+                'name':        'devops-info-service',
+                'version':     '1.0.0',
+                'description': 'DevOps course info service',
+                'framework':   'Flask'
+            },
+            'system':  get_system_info(),
+            'runtime': get_uptime(),
+            'request': get_request_info(),
+            'endpoints': [
+                {"path": "/",       "method": "GET", "description": "Service information"},
+                {"path": "/health", "method": "GET", "description": "Health check"}
+            ]
+        }
+    return jsonify(response)
 
 
 @app.route('/health')
