@@ -168,7 +168,6 @@ def metrics():
 
 
 @app.errorhandler(404)
-@prometheus.http_request_duration_seconds.time()
 def notfound_handler(e):
     logger.info('A 404 Not Found error occured', extra=get_http_extra_info())
     return jsonify({
