@@ -10,7 +10,6 @@ import os
 import platform
 import socket
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
-from asyncio import Lock
 
 
 HOST = os.getenv('HOST', '0.0.0.0')
@@ -189,7 +188,8 @@ def internal_error(e):
 
 @app.after_request
 def after_request(response: Response):
-    prometheus.http_requests_total.labels(request.method, request.path, str(response.status_code)).inc()
+    prometheus.http_requests_total.labels(request.method, request.path,
+                                          str(response.status_code)).inc()
     return response
 
 
