@@ -17,7 +17,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 3G
+          memory: 1G
         reservations:
           cpus: '1'
           memory: 1G
@@ -52,11 +52,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '1'
-          memory: 500M
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
       interval: 10s
@@ -76,11 +73,13 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '3.0'
-          memory: 4G
-        reservations:
-          cpus: '3'
-          memory: 1G
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:v3.9.0
@@ -99,11 +98,10 @@ services:
           memory: 1G
           cpus: '1.0'
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-
 
 volumes:
   loki-data:
