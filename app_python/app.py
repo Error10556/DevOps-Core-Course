@@ -3,16 +3,48 @@ DevOps Info Service
 Main application module
 """
 import json
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 from datetime import datetime, timezone
 import logging
 import os
 import platform
 import socket
+from prometheus_client import Counter, Histogram, Gauge, generate_latest
+
 
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+
+
+class PrometheusStats:
+    http_requests_total: Counter
+    http_request_duration_seconds: Histogram
+    http_requests_in_progress: Gauge
+    system_info_duration_seconds: Histogram
+
+    def __init__(self):
+        self.http_requests_total = Counter(
+            'http_requests_total',
+            'Total HTTP requests',
+            ['method', 'endpoint', 'status']
+        )
+        self.http_request_duration_seconds = Histogram(
+            'http_request_duration_seconds',
+            'HTTP request duration',
+            ['method', 'endpoint']
+        )
+        self.http_requests_in_progress = Gauge(
+            'http_requests_in_progress',
+            'HTTP requests currently being processed'
+        )
+        self.system_info_duration_seconds = Histogram(
+            'system_info_duration_seconds',
+            'System stats collection time'
+        )
+
+
+prometheus = PrometheusStats()
 
 
 class JSONFormatter(logging.Formatter):
@@ -92,27 +124,33 @@ def get_http_extra_info():
 
 
 @app.route('/')
+@prometheus.http_request_duration_seconds.labels('GET', '/').time()
+@prometheus.http_requests_in_progress.track_inprogress()
 def index():
     """Main endpoint - service and system information."""
     logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
-    return jsonify({
-        'service': {
-            'name':        'devops-info-service',
-            'version':     '1.0.0',
-            'description': 'DevOps course info service',
-            'framework':   'Flask'
-        },
-        'system':  get_system_info(),
-        'runtime': get_uptime(),
-        'request': get_request_info(),
-        'endpoints': [
-            {"path": "/",       "method": "GET", "description": "Service information"},
-            {"path": "/health", "method": "GET", "description": "Health check"}
-        ]
-    })
+    with prometheus.system_info_duration_seconds.time():
+        response = {
+            'service': {
+                'name':        'devops-info-service',
+                'version':     '1.0.0',
+                'description': 'DevOps course info service',
+                'framework':   'Flask'
+            },
+            'system':  get_system_info(),
+            'runtime': get_uptime(),
+            'request': get_request_info(),
+            'endpoints': [
+                {"path": "/",       "method": "GET", "description": "Service information"},
+                {"path": "/health", "method": "GET", "description": "Health check"}
+            ]
+        }
+    return jsonify(response)
 
 
 @app.route('/health')
+@prometheus.http_request_duration_seconds.labels('GET', '/health').time()
+@prometheus.http_requests_in_progress.track_inprogress()
 def health():
     logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
     return jsonify({
@@ -120,6 +158,13 @@ def health():
         'timestamp':      datetime.now(timezone.utc).isoformat(),
         'uptime_seconds': get_uptime()['uptime_seconds']
     })
+
+
+@app.route('/metrics')
+@prometheus.http_request_duration_seconds.labels('GET', '/metrics').time()
+@prometheus.http_requests_in_progress.track_inprogress()
+def metrics():
+    return Response(response=generate_latest(), status=200, content_type='text/plain')
 
 
 @app.errorhandler(404)
@@ -138,6 +183,13 @@ def internal_error(e):
         'error':   'Internal Server Error',
         'message': 'An unexpected error occurred'
     }), 500
+
+
+@app.after_request
+def after_request(response: Response):
+    prometheus.http_requests_total.labels(request.method, request.path,
+                                          str(response.status_code)).inc()
+    return response
 
 
 START_TIME = datetime.now(timezone.utc)
