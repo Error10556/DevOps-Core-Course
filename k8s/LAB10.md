@@ -320,3 +320,128 @@ REVISION: 1
 DESCRIPTION: Install complete
 TEST SUITE: None
 ```
+
+# Task 4
+
+```sh
+# Lint chart
+helm lint k8s/dinfochart
+```
+```text
+==> Linting k8s/dinfochart
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+```
+
+```sh
+# Dry run to see hooks
+helm install --dry-run=client --debug test-release k8s/dinfochart | grep -A 20 "HOOK\|hook"
+```
+```text
+level=DEBUG msg="Original chart version" version=""
+level=DEBUG msg="Chart path" path=/home/timur/proj/DevOps-Core-Course/k8s/dinfochart
+level=DEBUG msg="number of dependencies in the chart" chart=dinfochart dependencies=0
+HOOKS:
+---
+# Source: dinfochart/templates/hooks/post-install-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: 'test-release-dinfochart-post-install'
+  labels:
+    helm.sh/chart: dinfochart-0.1.0
+    app.kubernetes.io/name: dinfochart
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "1.1.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: 'test-release-dinfochart-post-install'
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: post-install-job
+        image: busybox
+        command: ['sh', '-c', 'echo Post-install validation && sleep 1 && echo Validation passed']
+---
+# Source: dinfochart/templates/hooks/pre-install-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: 'test-release-dinfochart-pre-install'
+  labels:
+    helm.sh/chart: dinfochart-0.1.0
+    app.kubernetes.io/name: dinfochart
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "1.1.1"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: 'test-release-dinfochart-pre-install'
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: pre-install-job
+        image: busybox
+        command: ['sh', '-c', 'echo Pre-install task running && sleep 1 && echo Pre-install completed']
+MANIFEST:
+---
+# Source: dinfochart/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-release-dinfochart
+  labels:
+    helm.sh/chart: dinfochart-0.1.0
+    app.kubernetes.io/name: dinfochart
+```
+
+```sh
+# Install and watch hooks
+helm install myrelease k8s/dinfochart
+kubectl get jobs -w
+kubectl get pods -w
+```
+```text
+NAME: myrelease
+LAST DEPLOYED: Thu Apr  2 18:01:48 2026
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+```
+```text
+No resources found in default namespace.
+```
+```text
+NAME                                    READY   STATUS    RESTARTS   AGE
+myrelease-dinfochart-5b67fb98d9-2jk9d   1/1     Running   0          39s
+myrelease-dinfochart-5b67fb98d9-8c448   1/1     Running   0          39s
+myrelease-dinfochart-5b67fb98d9-fq5mz   1/1     Running   0          39s
+myrelease-dinfochart-5b67fb98d9-v5zjk   1/1     Running   0          39s
+myrelease-dinfochart-5b67fb98d9-wtx52   1/1     Running   0          39s
+```
+
+```sh
+# Verify deletion policy worked
+kubectl get jobs
+```
+```text
+No resources found in default namespace.
+```
+
+# Task 5
+
+Refer to `k8s/HELM.md`.
