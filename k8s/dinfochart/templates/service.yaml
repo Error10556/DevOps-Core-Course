@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dinfochart.fullname" . }}
+  labels:
+    {{- include "dinfochart.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  selector:
+    {{- include "dinfochart.selectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
