@@ -39,3 +39,14 @@ spec:
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          env:
+            - name: username
+              valueFrom:
+                secretKeyRef:
+                  name: app-credentials
+                  key: username
+            - name: password
+              valueFrom:
+                secretKeyRef:
+                  name: app-credentials
+                  key: password

@@ -21,3 +21,7 @@ livenessProbe:
 readinessProbe:
   initialDelaySeconds: 10
   periodSeconds: 3
+
+secrets:
+  username: "placeholder"
+  password: "placeholder"
