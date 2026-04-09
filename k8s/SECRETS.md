@@ -102,11 +102,54 @@ minimal requirements for the containers to function at all.
 
 # Vault Integration
 ### Vault installation verification (`kubectl get pods`)
+```text
+NAME                                    READY   STATUS     RESTARTS   AGE
+dinfoserv-dinfochart-b9cc59fdf-2dv4n    2/2     Running    0          4m4s
+dinfoserv-dinfochart-b9cc59fdf-6chxr    2/2     Running    0          4m4s
+dinfoserv-dinfochart-b9cc59fdf-b6cqg    2/2     Running    0          4m4s
+dinfoserv-dinfochart-b9cc59fdf-fkfwn    2/2     Running    0          4m4s
+dinfoserv-dinfochart-b9cc59fdf-nh9r2    2/2     Running    0          4m4s
+vault-0                                 1/1     Running    0          15h
+vault-agent-injector-848dd747d7-b2pt4   1/1     Running    0          15h
+```
+
 ### Policy and role configuration (sanitized)
+Policy:
+```sh
+cat >dinfoservice-secret-access.hcl <<EOF
+path "secret/myapp/config" {
+    capabilities = ["read"]
+}
+EOF
+vault policy write dinfoservice-secret-access.hcl dinfoservice-secret-access.hcl
+```
+
+Role:
+```sh
+vault write auth/kubernetes/role/demo \
+    bound_service_account_names=myapp \
+    bound_service_account_namespaces=default \
+    policies=default \
+    ttl=1h
+```
+
 ### Proof of secret injection (show file exists, path structure)
-### Explanation of the sidecar injection pattern
+The secrets are mounted at `/etc/app-secret`:
+```text
+app-secret/
+├── password
+└── username
+```
 
 # Security Analysis
 ### Comparison: K8s Secrets vs Vault
+K8s secrets are the native tool that is easy to use with kubernetes. HashiCorp Vault is a separate solution, although it
+integrates well with Kubernetes.
+
+K8s Secrets are stored in `etcd` by Kubernetes directly, by default unencrypted; Vault secrets are stored separately in
+any provider that is configured, but that requires additional configuration.
+
 ### When to use each approach
-### Production recommendations
+There are ways to use both K8s secrets and HashiCorp Vault securely. But if the cloud provider, for example, provides a
+secret management service, HC Vault probably will be easier to configure to use it, especially if the cloud provider
+supplies documentation for that.

@@ -31,6 +31,6 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 3
 
-secrets:
+secret:
   username: "placeholder"
   password: "placeholder"
