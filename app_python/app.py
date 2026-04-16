@@ -22,7 +22,7 @@ class VisitCounter:
         try:
             with open(VisitCounter.FILENAME) as f:
                 self.visit_count = int(f.readline())
-        except FileNotFoundError, ValueError:
+        except (FileNotFoundError, ValueError):
             self.visit_count = 0
         self.lock = Lock()
 
