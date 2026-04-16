@@ -1,10 +1,9 @@
 FROM python:3.13-alpine
-RUN addgroup -S infoservice
-RUN adduser -S infoservice
+RUN adduser -D -H -h /app -u 2000 infoservice infoservice
 RUN mkdir /app /venv /data
-RUN chown infoservice:infoservice /venv /app
+RUN chown infoservice:infoservice /venv /app /data
 WORKDIR /app
-USER infoservice
+COPY docker-entrypoint.sh /
 RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 ENV VIRTUAL_ENV="/venv"
@@ -14,5 +13,5 @@ RUN pip install -r requirements.txt
 
 COPY --chown=infoservice:infoservice app.py .
 EXPOSE 5000
-ENTRYPOINT ["gunicorn"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["-b", "0.0.0.0:5000", "-e", "DEBUG=true", "app:app"]
