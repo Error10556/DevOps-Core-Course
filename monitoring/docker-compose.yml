@@ -86,6 +86,7 @@ services:
     ports:
       - 9090:9090
     volumes:
+      - app-data:/data:rw
       - ${PWD}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus:rw
     command:
@@ -107,3 +108,4 @@ volumes:
   loki-data:
   grafana-data:
   prometheus-data:
+  app-data:
