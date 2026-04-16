@@ -1,5 +1,6 @@
 import app
 import re
+import unittest.mock
 
 
 """
@@ -98,6 +99,8 @@ def validate_system(sysinfo):
 
 
 def test_index():
+    old = app.visit_counter
+    app.visit_counter = unittest.mock.MagicMock(app.visit_counter)
     app.app.testing = True
     with app.app.test_client() as client:
         for _ in range(3):
@@ -112,3 +115,4 @@ def test_index():
             validate_runtime(d["runtime"])
             validate_service(d["service"])
             validate_system(d["system"])
+    app.visit_counter = old
