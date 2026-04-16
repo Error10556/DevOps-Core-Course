@@ -1,7 +1,7 @@
 FROM python:3.13-alpine
 RUN addgroup -S infoservice
 RUN adduser -S infoservice
-RUN mkdir /app /venv
+RUN mkdir /app /venv /data
 RUN chown infoservice:infoservice /venv /app
 WORKDIR /app
 USER infoservice
