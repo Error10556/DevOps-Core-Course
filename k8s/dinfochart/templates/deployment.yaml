@@ -47,7 +47,7 @@ spec:
             - name: app-config
               mountPath: /config
               readOnly: true
-            - name: app-data
+            - name: data-volume
               mountPath: /data
           envFrom:
             - configMapRef:
@@ -55,7 +55,7 @@ spec:
       volumes:
         - name: app-config
           configMap:
-            name: devops-info-config
-        - name: app-data
+            name: {{ include "dinfochart.fullname" . }}-config
+        - name: data-volume
           persistentVolumeClaim:
-            claimName: devops-info-data
+            claimName: {{ include "dinfochart.fullname" . }}-data
