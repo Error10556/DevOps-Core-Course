@@ -49,17 +49,57 @@ spec:
 
 # Multi-Environment
 ### Dev vs Prod configuration differences
+The only differences are shown below:
+
+```diff
+--- argocd/application-dev.yaml	2026-04-23 19:12:06.412196521 +0300
++++ argocd/application-prod.yaml	2026-04-23 19:25:09.577043976 +0300
+@@ -12,13 +12,10 @@
+     helm:
+       valueFiles:
+         - values.yaml
+-        - values-dev.yaml
++        - values-prod.yaml
+   destination:
+     server: https://kubernetes.default.svc
+-    namespace: dev
++    namespace: prod
+   syncPolicy:
+-    automated:
+-      prune: true
+-      selfHeal: true
+     syncOptions:
+       - CreateNamespace=true
+```
+
 ### Sync policy differences and rationale
+In production, automatic syncing may be dangerous. Syncing should be done manually when the team knows that the system
+is stable (for example, if the staging environment rolled out fine).
+
 ### Namespace separation
+The development version of the app deployment will be located in the `dev` namespace, and the production will be in the
+`prod` namespace to ensure no collisions.
 
 # Self-Healing Evidence
 ### Manual scale test with before/after
+For example, assuming that the dev application is launched:
+```bash
+kubectl scale deployment devops-infoservice -n dev --replicas=2
+```
+After this, `argocd` automatically resets the replica count to 1.
+
 ### Pod deletion test
-### Configuration drift test
+Kubernetes restarts deleted pods on its own, I think, but still:
+```bash
+kubectl delete pods/python-app-dinfochart-6d448c7957-cxjxj
+```
+
+This command just resets the alive time counter.
+
 ### Explanation of behaviors
+ArgoCD automatically detects differences between the desired state and the real state of the deployment and can sync it
+back to the desired state.
 
 # Screenshots
-### ArgoCD UI showing both applications
-### Sync status
-### Application details view
 
+See above.
