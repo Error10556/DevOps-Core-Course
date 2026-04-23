@@ -43,22 +43,19 @@ spec:
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          env:
-            - name: username
-              valueFrom:
-                secretKeyRef:
-                  name: app-credentials
-                  key: username
-            - name: password
-              valueFrom:
-                secretKeyRef:
-                  name: app-credentials
-                  key: password
           volumeMounts:
-            - name: app-secret
-              mountPath: "/etc/app-secret"
+            - name: app-config
+              mountPath: /config
               readOnly: true
+            - name: data-volume
+              mountPath: /data
+          envFrom:
+            - configMapRef:
+                name: {{ include "dinfochart.fullname" . }}-env
       volumes:
-        - name: app-secret
-          secret:
-            secretName: app-credentials
+        - name: app-config
+          configMap:
+            name: {{ include "dinfochart.fullname" . }}-config
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: {{ include "dinfochart.fullname" . }}-data

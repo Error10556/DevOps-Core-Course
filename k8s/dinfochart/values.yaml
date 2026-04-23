@@ -34,3 +34,8 @@ readinessProbe:
 secret:
   username: "placeholder"
   password: "placeholder"
+
+persistence:
+  enabled: true
+  size: 100Mi
+  storageClass: ""  # Use default

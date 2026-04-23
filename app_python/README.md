@@ -98,7 +98,7 @@ In the next section, refer to the image as `timurusmanov/devops-infoservice`.
 Here is a template for the command you need to execute:
 
 ```bash
-docker run <-it|-d> --name infoservice -p <127.0.0.1|0.0.0.0>:<port>:5000 <docker image>
+docker run <-it|-d> --name infoservice -p <127.0.0.1|0.0.0.0>:<port>:5000 -v <volume for data>:/data <docker image>
 ```
 
 - Choose `-it` if you want the program to output logs to your terminal and you want to be able to terminate the

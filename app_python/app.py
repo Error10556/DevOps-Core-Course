@@ -3,6 +3,7 @@ DevOps Info Service
 Main application module
 """
 import json
+from threading import Lock
 from flask import Flask, Response, jsonify, request
 from datetime import datetime, timezone
 import logging
@@ -12,9 +13,30 @@ import socket
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 
 
+class VisitCounter:
+    lock: Lock
+    visit_count: int
+    FILENAME: str = '/data/visits'
+
+    def __init__(self):
+        try:
+            with open(VisitCounter.FILENAME) as f:
+                self.visit_count = int(f.readline())
+        except (FileNotFoundError, ValueError):
+            self.visit_count = 0
+        self.lock = Lock()
+
+    def inc(self) -> None:
+        with self.lock:
+            self.visit_count = self.visit_count + 1
+            with open(VisitCounter.FILENAME, 'w') as f:
+                _ = f.write(str(self.visit_count))
+
+
 HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', 5000))
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+visit_counter = VisitCounter()
 
 
 class PrometheusStats:
@@ -128,6 +150,7 @@ def get_http_extra_info():
 @prometheus.http_requests_in_progress.track_inprogress()
 def index():
     """Main endpoint - service and system information."""
+    visit_counter.inc()
     logger.debug(f'Request: {request.method} {request.path}', extra=get_http_extra_info())
     with prometheus.system_info_duration_seconds.time():
         response = {
@@ -165,6 +188,11 @@ def health():
 @prometheus.http_requests_in_progress.track_inprogress()
 def metrics():
     return Response(response=generate_latest(), status=200, content_type='text/plain')
+
+
+@app.route('/visits')
+def get_visits():
+    return jsonify({'visits': visit_counter.visit_count})
 
 
 @app.errorhandler(404)
