@@ -53,14 +53,8 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "dinfochart.fullname" . }}-data
   strategy:
-    canary:
-      steps:
-        - setWeight: 20
-        - pause: {}  # Manual promotion required
-        - setWeight: 40
-        - pause: { duration: 30s }
-        - setWeight: 60
-        - pause: { duration: 30s }
-        - setWeight: 80
-        - pause: { duration: 30s }
-        - setWeight: 100
+    blueGreen:
+      activeService: {{ include "dinfochart.fullname" . }}
+      previewService: {{ include "dinfochart.fullname" . }}-preview
+      autoPromotionEnabled: false  # Manual promotion
+      # autoPromotionSeconds: 30  # Or auto-promote after 30s
