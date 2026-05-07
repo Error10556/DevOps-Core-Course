@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dinfochart.fullname" . }}-headless
+spec:
+  clusterIP: None
+  selector:
+    {{- include "dinfochart.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: {{ .Values.service.port }}
