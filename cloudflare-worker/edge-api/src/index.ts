@@ -47,6 +47,18 @@ export default {
 			});
 		}
 
+		if (url.pathname === "/edge") {
+			return Response.json({
+				colo: request.cf?.colo,
+				country: request.cf?.country,
+				city: request.cf?.city,
+				asn: request.cf?.asn,
+				httpProtocol: request.cf?.httpProtocol,
+				tlsVersion: request.cf?.tlsVersion,
+			});
+		}
+
+
 		return new Response("Not Found", { status: 404 });
 	},
 };
