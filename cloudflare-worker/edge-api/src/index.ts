@@ -11,32 +11,42 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-export interface Env {
-	KV: KVNamespace;
-	APP_NAME: "lab17";
+async function get_counter(env: Env): Promise<number> {
+	const count = await env.KV.get("counter");
+	if (count === null) {
+		return 0;
+	}
+	return Number.parseInt(count);
+}
+
+async function inc_counter(env: Env): Promise<void> {
+	const count = await get_counter(env);
+	await env.KV.put("counter", (count + 1).toString());
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
+	async fetch(request: Request, env: Env): Promise<Response> {
+		const url = new URL(request.url);
 
-    if (url.pathname === "/health") {
-      return Response.json({ status: "ok" });
-    }
+		if (url.pathname === "/health") {
+			return Response.json({ status: "ok" });
+		}
 
-    if (url.pathname === "/") {
-      return Response.json({
-        app: env.APP_NAME,
-        message: "Hello from Cloudflare Workers",
-        timestamp: new Date().toISOString(),
-      });
-    }
+		if (url.pathname === "/") {
+			await inc_counter(env);
+			return Response.json({
+				app: env.APP_NAME,
+				message: "Hello from Cloudflare Workers",
+				timestamp: new Date().toISOString(),
+			});
+		}
 
-	if (url.pathname === "/counter") {
-		env.
-	}
+		if (url.pathname === "/counter") {
+			return Response.json({
+				count: await get_counter(env)
+			});
+		}
 
-    return new Response("Not Found", { status: 404 });
-  },
+		return new Response("Not Found", { status: 404 });
+	},
 };
-
