@@ -1,3 +1,4 @@
+#!/bin/env python
 """
 DevOps Info Service
 Main application module
